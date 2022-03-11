@@ -7,6 +7,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS D7
 
@@ -16,8 +18,6 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 
-const char *ssid     = "xxx";
-const char *password = "xxx";
 
 #define DEBUG // activate output to serial
 
@@ -56,8 +56,8 @@ const float period = 10;
 const uint16_t t_fast = 15000;
 
 // duty cycle is adjusted according to ambient temperature and interpolated between two points 
-const float P1[2] = {21, 0.6};  // {temperature (°C), duty cycle}
-const float P2[2] = {26, 0.4};  // {temperature (°C), duty cycle}
+const float P1[2] = {21, 0.55};  // {temperature (°C), duty cycle}
+const float P2[2] = {26, 0.35};  // {temperature (°C), duty cycle}
 
 
 // bits to activate for showing numbers 0...9
@@ -114,13 +114,23 @@ void setup() {
   delay(1000);
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  DEBUG_PRINT("connecting to WiFI");
-  while ( WiFi.status() != WL_CONNECTED ) {
-    delay ( 500 );
-    DEBUG_PRINT ( "." );
+  
+  //WiFiManager
+  //Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wm;
+  //reset settings - for testing
+  //wm.resetSettings();
+
+  //fetches ssid and pass and tries to connect
+  //if it does not connect it starts an access point with the specified name
+  //and goes into a blocking loop awaiting configuration
+  if (!wm.autoConnect("ThermochromicFrameAP")) {
+    DEBUG_PRINTLN("failed to connect Wifi and hit timeout");
+    //reset and try again, or maybe put it to deep sleep
+    ESP.restart();
+    delay(1000);
   }
-  DEBUG_PRINTLN("connected!");
+  DEBUG_PRINTLN("Wifi connected");
 
   DEBUG_PRINTLN("configure NTP");
   configTime(MY_TZ, MY_NTP_SERVER); // configure NTP server and timezone
